@@ -60,54 +60,40 @@ function processCommand(command) {
 function getTodos() {
     const todos = files.flatMap(file => {
         const matches = file.content.match(/\/\/ TODO .*/g) || [];
-        return matches.map(match => `${file.path}: ${match}`);
+        return matches.map(match => ({
+            path: file.path,
+            comment: match
+        }));
     });
     return todos;
 }
 
 function showTodos() {
     const todos = getTodos();
-
-    if (todos.length > 0) {
-        console.log('List of TODO comments:');
-        todos.forEach(todo => console.log(todo));
-    } else {
-        console.log('No TODO comments found.');
-    }
+    formatTodoTable(todos, 'List of TODO comments:');
 }
 
 function showImportantTodos() {
     const todos = getTodos();
-    const importantTodos = todos.filter(todo => todo.includes('!'));
-
-    if (importantTodos.length > 0) {
-        console.log('List of important TODO comments:');
-        importantTodos.forEach(todo => console.log(todo));
-    } else {
-        console.log('No important TODO comments found.');
-    }
+    const importantTodos = todos.filter(todo => todo.comment.includes('!'));
+    formatTodoTable(importantTodos, 'List of important TODO comments:');
 }
 
 function showUserTodos(username) {
     const todos = getTodos();
     const userTodos = todos.filter(todo => {
-        const match = todo.match(/\/\/ TODO\s*({[^;]+}|[^;]+?);/);
+        const match = todo.comment.match(/\/\/ TODO\s*({[^;]+}|[^;]+?);/);
         if (match) {
             let extractedUsername = match[1].trim();
             if (extractedUsername.startsWith('{') && extractedUsername.endsWith('}')) {
                 extractedUsername = extractedUsername.slice(1, -1).trim();
             }
-            return extractedUsername.toLowerCase() === username; 
+            return extractedUsername.toLowerCase() === username;
         }
         return false;
     });
 
-    if (userTodos.length > 0) {
-        console.log(`List of TODO comments by user "${username}":`);
-        userTodos.forEach(todo => console.log(todo));
-    } else {
-        console.log(`No TODO comments found for user "${username}".`);
-    }
+    formatTodoTable(userTodos, `List of TODO comments by user "${username}":`);
 }
 
 function sortTodos(sortType) {
@@ -135,7 +121,7 @@ function sortTodos(sortType) {
 }
 
 function sortImportance(todos) {
-    const importantTodos = todos.filter(todo => todo.includes('!'));
+    const importantTodos = todos.filter(todo => todo.comment.includes('!'));
 
     if (importantTodos.length === 0) {
         console.log('No important TODO comments found.');
@@ -143,13 +129,12 @@ function sortImportance(todos) {
     }
 
     importantTodos.sort((a, b) => {
-        const countA = (a.match(/!/g) || []).length;
-        const countB = (b.match(/!/g) || []).length;
-        return countB - countA; 
+        const countA = (a.comment.match(/!/g) || []).length;
+        const countB = (b.comment.match(/!/g) || []).length;
+        return countB - countA;
     });
 
-    console.log('TODO comments sorted by importance:');
-    importantTodos.forEach(todo => console.log(todo));
+    formatTodoTable(importantTodos, 'TODO comments sorted by importance:');
 }
 
 function sortUser(todos) {
@@ -157,13 +142,13 @@ function sortUser(todos) {
     const noUserTodos = [];
 
     todos.forEach(todo => {
-        const match = todo.match(/\/\/ TODO\s*({[^;]+}|[^;]+?);/);
+        const match = todo.comment.match(/\/\/ TODO\s*({[^;]+}|[^;]+?);/);
         if (match) {
             let username = match[1].trim();
             if (username.startsWith('{') && username.endsWith('}')) {
-                username = username.slice(1, -1).trim(); 
+                username = username.slice(1, -1).trim();
             }
-            const normalizedUsername = username.toLowerCase(); 
+            const normalizedUsername = username.toLowerCase();
 
             if (!userMap.has(normalizedUsername)) {
                 userMap.set(normalizedUsername, []);
@@ -174,82 +159,106 @@ function sortUser(todos) {
         }
     });
 
-    console.log('TODO comments sorted by user:');
-
-    Array.from(userMap.keys())
+    const sortedTodos = Array.from(userMap.keys())
         .sort()
-        .forEach(username => {
-            console.log(`User: ${username}`);
-            userMap.get(username).forEach(todo => console.log(todo));
-        });
+        .flatMap(username => userMap.get(username));
 
-    if (noUserTodos.length > 0) {
-        console.log('User: Unknown');
-        noUserTodos.forEach(todo => console.log(todo));
-    }
+    sortedTodos.push(...noUserTodos);
+
+    formatTodoTable(sortedTodos, 'TODO comments sorted by user:');
 }
 
 function sortDate(todos) {
     todos.sort((a, b) => {
-        const dateA = extractDate(a);
-        const dateB = extractDate(b);
+        const dateA = extractDate(a.comment);
+        const dateB = extractDate(b.comment);
 
         if (dateA && dateB) {
-            return dateB.localeCompare(dateA); 
+            return dateB.localeCompare(dateA);
         } else if (dateA) {
-            return -1; 
+            return -1;
         } else if (dateB) {
-            return 1; 
+            return 1;
         } else {
-            return 0; 
+            return 0;
         }
     });
 
-    console.log('TODO comments sorted by date:');
-    todos.forEach(todo => console.log(todo));
+    formatTodoTable(todos, 'TODO comments sorted by date:');
 }
-
 
 function showTodosAfterDate(dateStr) {
     const todos = getTodos();
-
     const targetDate = parseDate(dateStr);
+
     if (!targetDate) {
         console.log('Invalid date format. Use yyyy, yyyy-mm, or yyyy-mm-dd.');
         return;
     }
 
     const filteredTodos = todos.filter(todo => {
-        const todoDate = extractDate(todo);
-        if (!todoDate) return false; 
+        const todoDate = extractDate(todo.comment);
+        if (!todoDate) return false;
         return isAfterDate(todoDate, targetDate);
     });
 
-    if (filteredTodos.length > 0) {
-        console.log(`TODO comments created after ${dateStr}:`);
-        filteredTodos.forEach(todo => console.log(todo));
-    } else {
-        console.log(`No TODO comments found after ${dateStr}.`);
-    }
+    formatTodoTable(filteredTodos, `TODO comments created after ${dateStr}:`);
 }
 
 function parseDate(dateStr) {
     const parts = dateStr.split('-').map(part => parseInt(part, 10));
     if (parts.length === 1) {
-        return new Date(parts[0], 0, 1); 
+        return new Date(parts[0], 0, 1);
     } else if (parts.length === 2) {
-        return new Date(parts[0], parts[1] - 1, 1); 
+        return new Date(parts[0], parts[1] - 1, 1);
     } else if (parts.length === 3) {
-        return new Date(parts[0], parts[1] - 1, parts[2]); 
+        return new Date(parts[0], parts[1] - 1, parts[2]);
     }
     return null;
 }
 
-function extractDate(todo) {
-    const match = todo.match(/;\s*(\d{4}-\d{2}-\d{2})\s*;/);
-    return match ? new Date(match[1]) : null;
+function extractDate(comment) {
+    const match = comment.match(/;\s*(\d{4}-\d{2}-\d{2})\s*;/);
+    return match ? match[1] : null;
 }
 
 function isAfterDate(todoDate, targetDate) {
-    return todoDate >= targetDate;
+    return new Date(todoDate) >= targetDate;
+}
+
+function formatTodoTable(todos, title) {
+    if (todos.length === 0) {
+        console.log(title);
+        console.log('No TODO comments found.');
+        return;
+    }
+
+    console.log(title);
+
+    const table = todos.map(todo => {
+        const importance = todo.comment.includes('!') ? '!' : ' ';
+        const userMatch = todo.comment.match(/\/\/ TODO\s*({[^;]+}|[^;]+?);/);
+        const user = userMatch ? userMatch[1].trim() : ' ';
+        const dateMatch = todo.comment.match(/;\s*(\d{4}-\d{2}-\d{2})\s*;/);
+        const date = dateMatch ? dateMatch[1] : ' ';
+        const comment = todo.comment.replace(/\/\/ TODO\s*({[^;]+}|[^;]+?);\s*(\d{4}-\d{2}-\d{2})?\s*;/, '').trim();
+
+        return {
+            importance: importance,
+            user: user,
+            date: date,
+            comment: comment
+        };
+    });
+
+    const formattedTable = table.map(row => {
+        const importance = row.importance.padEnd(3, ' ');
+        const user = row.user.slice(0, 10).padEnd(12, ' ');
+        const date = row.date.slice(0, 10).padEnd(12, ' ');
+        const comment = row.comment.slice(0, 50).padEnd(52, ' ');
+
+        return `${importance} |  ${user} |  ${date} |  ${comment}`;
+    });
+
+    console.log(formattedTable.join('\n'));
 }

@@ -32,7 +32,7 @@ function processCommand(command) {
             break;
         case 'user':
             if (args.length === 1) {
-                showUserTodos(args[0].toLowerCase()); 
+                showUserTodos(args[0].toLowerCase());
             } else {
                 console.log('Usage: user {username}');
             }
@@ -42,6 +42,13 @@ function processCommand(command) {
                 sortTodos(args[0]);
             } else {
                 console.log('Usage: sort {importance | user | date}');
+            }
+            break;
+        case 'date':
+            if (args.length === 1) {
+                showTodosAfterDate(args[0]);
+            } else {
+                console.log('Usage: date {yyyy[-mm[-dd]]}');
             }
             break;
         default:
@@ -202,7 +209,47 @@ function sortDate(todos) {
     todos.forEach(todo => console.log(todo));
 }
 
+
+function showTodosAfterDate(dateStr) {
+    const todos = getTodos();
+
+    const targetDate = parseDate(dateStr);
+    if (!targetDate) {
+        console.log('Invalid date format. Use yyyy, yyyy-mm, or yyyy-mm-dd.');
+        return;
+    }
+
+    const filteredTodos = todos.filter(todo => {
+        const todoDate = extractDate(todo);
+        if (!todoDate) return false; 
+        return isAfterDate(todoDate, targetDate);
+    });
+
+    if (filteredTodos.length > 0) {
+        console.log(`TODO comments created after ${dateStr}:`);
+        filteredTodos.forEach(todo => console.log(todo));
+    } else {
+        console.log(`No TODO comments found after ${dateStr}.`);
+    }
+}
+
+function parseDate(dateStr) {
+    const parts = dateStr.split('-').map(part => parseInt(part, 10));
+    if (parts.length === 1) {
+        return new Date(parts[0], 0, 1); 
+    } else if (parts.length === 2) {
+        return new Date(parts[0], parts[1] - 1, 1); 
+    } else if (parts.length === 3) {
+        return new Date(parts[0], parts[1] - 1, parts[2]); 
+    }
+    return null;
+}
+
 function extractDate(todo) {
     const match = todo.match(/;\s*(\d{4}-\d{2}-\d{2})\s*;/);
-    return match ? match[1] : null;
+    return match ? new Date(match[1]) : null;
+}
+
+function isAfterDate(todoDate, targetDate) {
+    return todoDate >= targetDate;
 }

@@ -1,5 +1,5 @@
-const {getAllFilePathsWithExtension, readFile} = require('./fileSystem');
-const {readLine} = require('./console');
+const { getAllFilePathsWithExtension, readFile } = require('./fileSystem');
+const { readLine } = require('./console');
 
 const files = getFiles();
 
@@ -15,12 +15,15 @@ function getFiles() {
 }
 
 function processCommand(command) {
-    switch (command) {
+    switch (command.trim()) {
         case 'exit':
             process.exit(0);
             break;
-        case 'get-todos':
-            getTodos();
+        case 'get-todos': 
+            console.log(getTodos());
+            break;
+        case 'show': 
+            showTodos();
             break;
         default:
             console.log('wrong command');
@@ -33,11 +36,16 @@ function getTodos() {
         const matches = file.content.match(/\/\/ TODO .*/g) || [];
         return matches.map(match => `${file.path}: ${match}`);
     });
+    return todos;
+}
+
+function showTodos() {
+    const todos = getTodos();
 
     if (todos.length > 0) {
-        console.log('Найдены следующие TODO комментарии:');
-        todos.forEach(todo => console.log(todo));
+        console.log('List of TODO comments:');
+        todos.forEach(todo => console.log(todo)); 
     } else {
-        console.log('TODO комментарии не найдены');
+        console.log('No TODO comments found.');
     }
 }

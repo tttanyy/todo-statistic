@@ -251,11 +251,16 @@ function formatTodoTable(todos, title) {
         };
     });
 
+    const maxImportanceWidth = Math.min(1, Math.max(...table.map(row => row.importance.length)));
+    const maxUserWidth = Math.min(10, Math.max(...table.map(row => row.user.length)));
+    const maxDateWidth = Math.min(10, Math.max(...table.map(row => row.date.length)));
+    const maxCommentWidth = Math.min(50, Math.max(...table.map(row => row.comment.length)));
+
     const formattedTable = table.map(row => {
-        const importance = row.importance.padEnd(3, ' ');
-        const user = row.user.slice(0, 10).padEnd(12, ' ');
-        const date = row.date.slice(0, 10).padEnd(12, ' ');
-        const comment = row.comment.slice(0, 50).padEnd(52, ' ');
+        const importance = row.importance.padEnd(maxImportanceWidth, ' ');
+        const user = row.user.slice(0, maxUserWidth).padEnd(maxUserWidth, ' ');
+        const date = row.date.slice(0, maxDateWidth).padEnd(maxDateWidth, ' ');
+        const comment = row.comment.slice(0, maxCommentWidth).padEnd(maxCommentWidth, ' ');
 
         return `${importance} |  ${user} |  ${date} |  ${comment}`;
     });

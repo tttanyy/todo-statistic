@@ -25,6 +25,9 @@ function processCommand(command) {
         case 'show': 
             showTodos();
             break;
+        case 'important': 
+            showImportantTodos();
+            break;
         default:
             console.log('wrong command');
             break;
@@ -43,9 +46,21 @@ function showTodos() {
     const todos = getTodos();
 
     if (todos.length > 0) {
-        console.log('List of TODO comments:');
+        console.log('TODO comments:');
         todos.forEach(todo => console.log(todo)); 
     } else {
-        console.log('No TODO comments found.');
+        console.log('No TODO comments found');
+    }
+}
+
+function showImportantTodos() {
+    const todos = getTodos(); 
+    const importantTodos = todos.filter(todo => todo.includes('!')); 
+
+    if (importantTodos.length > 0) {
+        console.log('important TODO comments:');
+        importantTodos.forEach(todo => console.log(todo));
+    } else {
+        console.log('No important TODO comments found');
     }
 }
